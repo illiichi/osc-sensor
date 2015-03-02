@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="com.illiichi"
+          android:versionCode="{{version-code}}"
+          android:versionName="{{version-name}}" >
+
+  <uses-sdk android:minSdkVersion="15" />
+
+  <application
+      android:icon="@drawable/ic_launcher"
+      android:label="OSC-Sensor">
+    <activity android:name=".SplashActivity"
+              android:theme="@android:style/Theme.Translucent.NoTitleBar">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity>
+    <activity android:name=".MyActivity">
+      <intent-filter>
+        <action android:name='com.illiichi.MAIN'/>
+        <category android:name='android.intent.category.DEFAULT'/>
+      </intent-filter>
+    </activity>
+  </application>
+
+  {{#debug-build}}
+  <!-- Inside this section the permission will work only in debug builds (this is -->
+  <!-- needed for remote REPL). If your application logic requires Internet -->
+  <!-- permission too, move it out of the section. -->
+  <uses-pemission android:name="android.permission.INTERNET"/>
+  {{/debug-build}}
+</manifest>
