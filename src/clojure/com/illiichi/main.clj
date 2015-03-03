@@ -23,9 +23,10 @@
                  (apply osc-send @client (str "/" id) (map mean coll)))
                [])]
     (every interval #(send-off stack task) my-pool)))
-  
+
 (defn push-vector [stack vals]
   (let [push (fn [xs xss]
+               (prn (first (seq xs)))
                (if (empty? xss)
                  (map vector xs)
                  (map conj xss xs)))]
@@ -53,23 +54,29 @@
     [(create "rotate" Sensor/TYPE_ROTATION_VECTOR rotate-stack)
      (create "acc" Sensor/TYPE_LINEAR_ACCELERATION acc-stack)]))
 
-(defn start-send [address port interval sensorManager]
+(def sensorManager (atom nil))
+
+(defn start-send [address port interval]
   (for [stack [acc-stack rotate-stack]]
     (send stack (fn [_] [])))
   (reset! client (osc-client address port))
-  (reset! listeners (create-listeners interval sensorManager))
+  (reset! listeners (create-listeners interval @sensorManager))
   (prn "start"))
 
-(defn stop-send [sensorManager]
-  (map #(.unregisterListener sensorManager %) @listeners)
-  (stop-and-reset-pool! my-pool)
-  (reset! client nil)
-  (reset! listeners nil)
-  (prn "stop"))
+(defn stop-send []
+  (let [xs @listeners
+        manager @sensorManager]
+    ;; (map (fn [x] (prn "- ho -" x)
+    ;;        (.unregisterListener manager x)) xs)
+    (.unregisterListener manager (first xs))
+    (.unregisterListener manager (second xs))
+   (stop-and-reset-pool! my-pool)
+   (reset! client nil)
+   (reset! listeners nil)
+   (prn "stop")))
 
 (defn toggle-state [activity]
-  (let [state (swap! state #(update-in % [:start?] not))
-        sensorManager (.getSystemService activity Context/SENSOR_SERVICE)]
+  (let [state (swap! state #(update-in % [:start?] not))]
     (-> (find-views activity "button")
         (first)
         (.setText (if (:start? state)
@@ -78,13 +85,14 @@
       (let [address  (str      (.getText (find-view activity ::address)))
             port     (Integer. (str (.getText (find-view activity ::port))))
             interval (Integer. (str (.getText (find-view activity ::interval))))]
-        (start-send address port interval sensorManager))
-      (stop-send sensorManager))))
+        (start-send address port interval))
+      (stop-send))))
 
 (defactivity com.illiichi.MyActivity
   :key :main
   :on-create
-  (fn [this bundle]    
+  (fn [this bundle]
+    (reset! sensorManager (.getSystemService (*a) Context/SENSOR_SERVICE))
     (on-ui
       (set-content-view! (*a)
         [:linear-layout {:orientation :vertical}
