@@ -25,8 +25,7 @@
     (every interval #(send-off stack task) my-pool)))
 
 (defn push-vector [stack vals]
-  (let [push (fn [xs xss]
-               (prn (first (seq xs)))
+  (let [push (fn [xs xss]               
                (if (empty? xss)
                  (map vector xs)
                  (map conj xss xs)))]
