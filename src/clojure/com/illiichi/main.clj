@@ -16,16 +16,24 @@
 (def acc-stack (agent []))
 (def rotate-stack (agent []))
 
-(defn send-every [id stack interval]
-  (let [mean #(/ (reduce + %) (count %))
-        task (fn [coll]
-               (when (not (empty? coll))
-                 (apply osc-send @client (str "/" id) (map mean coll)))
-               [])]
-    (every interval #(send-off stack task) my-pool)))
+(defn send-every [id interval]
+  (letfn [(task []            
+            (apply osc-send @client (str "/" id) (concat @acc-stack @rotate-stack))
+            (for [stack [acc-stack rotate-stack]]
+              (send stack (fn [_] []))))]
+    (every interval task my-pool)))
+
+
+
+(defn replace-mean [stack vals]
+  (letfn [(mean [xs]
+            (if (empty? xs) vals
+                (map #(/ (+ %1 %2) 2.0) vals xs)))]
+    (send-off stack mean)))
+
 
 (defn push-vector [stack vals]
-  (let [push (fn [xs xss]               
+  (let [push (fn [xs xss]
                (if (empty? xss)
                  (map vector xs)
                  (map conj xss xs)))]
@@ -41,8 +49,8 @@
                  (let [listener (reify SensorEventListener
                                   (onAccuracyChanged [this sensor value] ())
                                   (onSensorChanged [this event]
-                                    (apply #'push-vector stack (seq (list (. event values))))))]
-                   (send-every id stack interval)
+                                    (apply #'replace-mean stack (seq (list (. event values))))))]
+                   (send-every "Data" interval)
                    (.. sensorManager
                        (registerListener listener
                                          (.getDefaultSensor sensorManager sensor-type)
@@ -51,7 +59,8 @@
                                          SensorManager/SENSOR_DELAY_GAME))
                    listener))]
     [(create "rotate" Sensor/TYPE_ROTATION_VECTOR rotate-stack)
-     (create "acc" Sensor/TYPE_LINEAR_ACCELERATION acc-stack)]))
+     (create "acc" Sensor/TYPE_LINEAR_ACCELERATION acc-stack)
+     ]))
 
 (def sensorManager (atom nil))
 
@@ -97,10 +106,10 @@
         [:linear-layout {:orientation :vertical}
          [:linear-layout {}
           [:text-view {:text "address"}]
-          [:edit-text {:text "192.168.0.4" :id ::address}]]
+          [:edit-text {:text "192.168.0.2" :id ::address}]]
          [:linear-layout {}
           [:text-view {:text "port"}]
-          [:edit-text {:text "1234" :id ::port}]]
+          [:edit-text {:text "1235" :id ::port}]]
          [:linear-layout {}
           [:text-view {:text "interval(ms)"}]
           [:edit-text {:text "200" :id ::interval}]]
@@ -140,3 +149,17 @@
 
 ;; {PMOsc.ar(440 * In.ar(rotateBus).abs, 10 * In.ar(accBus).abs, 3)}.play(soundGroup)
 ;; )
+
+(comment
+  (def GRT-RECEIVE-PORT 5000)
+  (def GRT-RECEIVE-PORT 1235)
+  (def client (osc-client "192.168.0.2" GRT-RECEIVE-PORT))
+  
+
+ (osc-send client "/Setup" 0.0 3.0 1.0)
+ (osc-send client "/Data" 100.0 (float 100) (float 250))
+
+ (def server (osc-server 1235))
+ (osc-listen server (fn [msg] (println "MSG: " msg)) :debug)
+  (osc-rm-listener server :debug)
+ )
