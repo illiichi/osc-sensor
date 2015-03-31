@@ -9,20 +9,13 @@
 
 (def state (atom {:start? false}))
 
-(def client (atom nil))
 (def listeners (atom nil))
  
 (def my-pool (mk-pool))
 (def acc-stack (agent []))
 (def rotate-stack (agent []))
 
-(defn send-every [id interval]
-  (letfn [(task []            
-            (apply osc-send @client (str "/" id) (concat @acc-stack @rotate-stack))
-            (for [stack [acc-stack rotate-stack]]
-              (send stack (fn [_] []))))]
-    (every interval task my-pool)))
-
+(defn now [] (.format (java.text.SimpleDateFormat. "HH:mm:ss.S") (java.util.Date.)))
 
 
 (defn replace-mean [stack vals]
@@ -30,7 +23,15 @@
             (if (empty? xs) vals
                 (map #(/ (+ %1 %2) 2.0) vals xs)))]
     (send-off stack mean)))
-
+(defn send-every [id interval host port]
+  (letfn [(task []            
+            (let [client (osc-client host port)] (apply osc-send client (str "/" id) (concat [(now)] @acc-stack @rotate-stack)))
+            ;; (apply osc-send client (str "/" id) (concat [(now)] [-0.74782043082746, 5.3259560276466, 8.299258563232] [0.21574099701674, -0.18960481184636, -0.74130249528735] ))
+            ;; (apply osc-send client (str "/" id) [(now) -0.74782043082746, 5.3259560276466, 8.299258563232 0.21574099701674, -0.18960481184636, -0.74130249528735])
+            ;; (let [client (osc-client host port)] (osc-send client (str "/" id) (now) -0.74782043082746, 5.3259560276466, 8.299258563232 0.21574099701674, -0.18960481184636, -0.74130249528735))
+            (for [stack [acc-stack rotate-stack]] (send stack (fn [_] [])))
+            )]    
+    (every interval task my-pool)))
 
 (defn push-vector [stack vals]
   (let [push (fn [xs xss]
@@ -44,13 +45,13 @@
 (set-error-handler! acc-stack err-handler-fn)
 (set-error-handler! rotate-stack err-handler-fn)
 
-(defn create-listeners [interval sensorManager]
+(defn create-listeners [interval sensorManager host port]
   (let [create (fn [id sensor-type stack]
                  (let [listener (reify SensorEventListener
                                   (onAccuracyChanged [this sensor value] ())
                                   (onSensorChanged [this event]
                                     (apply #'replace-mean stack (seq (list (. event values))))))]
-                   (send-every "Data" interval)
+                   (send-every "Data" interval host port)
                    (.. sensorManager
                        (registerListener listener
                                          (.getDefaultSensor sensorManager sensor-type)
@@ -58,8 +59,8 @@
                                          ;; SensorManager/SENSOR_DELAY_UI
                                          SensorManager/SENSOR_DELAY_GAME))
                    listener))]
-    [(create "rotate" Sensor/TYPE_ROTATION_VECTOR rotate-stack)
-     (create "acc" Sensor/TYPE_LINEAR_ACCELERATION acc-stack)
+    [(create "acc" Sensor/TYPE_ACCELEROMETER acc-stack)
+     (create "rotate" Sensor/TYPE_ROTATION_VECTOR rotate-stack)
      ]))
 
 (def sensorManager (atom nil))
@@ -67,8 +68,7 @@
 (defn start-send [address port interval]
   (for [stack [acc-stack rotate-stack]]
     (send stack (fn [_] [])))
-  (reset! client (osc-client address port))
-  (reset! listeners (create-listeners interval @sensorManager))
+  (reset! listeners (create-listeners interval @sensorManager address port))
   (prn "start"))
 
 (defn stop-send []
@@ -79,7 +79,6 @@
     (.unregisterListener manager (first xs))
     (.unregisterListener manager (second xs))
    (stop-and-reset-pool! my-pool)
-   (reset! client nil)
    (reset! listeners nil)
    (prn "stop")))
 
@@ -109,17 +108,16 @@
           [:edit-text {:text "192.168.0.2" :id ::address}]]
          [:linear-layout {}
           [:text-view {:text "port"}]
-          [:edit-text {:text "1235" :id ::port}]]
+          [:edit-text {:text "5000" :id ::port}]]
          [:linear-layout {}
           [:text-view {:text "interval(ms)"}]
-          [:edit-text {:text "200" :id ::interval}]]
+          [:edit-text {:text "80" :id ::interval}]]
          [:button {:id "button"
                    :text "ready?" :on-click (fn [_] (toggle-state (*a)))}]]))))
 
 
 (comment
-  (def GRT-RECEIVE-PORT 5000)
-  (def GRT-RECEIVE-PORT 1235)
+  (def GRT-RECEIVE-PORT 5000)  
   (def client (osc-client "192.168.0.2" GRT-RECEIVE-PORT))
   
 
@@ -164,3 +162,5 @@
 ;;
 ;; {PMOsc.ar(440 * In.ar(rotateBus).poll.abs, 10 * In.ar(accBus).abs, 3)}.play(soundGroup)
 ;;)
+
+
