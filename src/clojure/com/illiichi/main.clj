@@ -25,12 +25,10 @@
     (send-off stack mean)))
 (defn send-every [id interval host port]
   (letfn [(task []            
-            (let [client (osc-client host port)] (apply osc-send client (str "/" id) (concat [(now)] @acc-stack @rotate-stack)))
-            ;; (apply osc-send client (str "/" id) (concat [(now)] [-0.74782043082746, 5.3259560276466, 8.299258563232] [0.21574099701674, -0.18960481184636, -0.74130249528735] ))
-            ;; (apply osc-send client (str "/" id) [(now) -0.74782043082746, 5.3259560276466, 8.299258563232 0.21574099701674, -0.18960481184636, -0.74130249528735])
-            ;; (let [client (osc-client host port)] (osc-send client (str "/" id) (now) -0.74782043082746, 5.3259560276466, 8.299258563232 0.21574099701674, -0.18960481184636, -0.74130249528735))
-            (for [stack [acc-stack rotate-stack]] (send stack (fn [_] [])))
-            )]    
+            (let [client (osc-client host port)]
+              ;; (apply osc-send client (str "/" id) (concat [(now)] @acc-stack @rotate-stack))
+              (apply osc-send client (str "/" id) (concat @acc-stack @rotate-stack)))
+            (for [stack [acc-stack rotate-stack]] (send stack (fn [_] []))))]    
     (every interval task my-pool)))
 
 (defn push-vector [stack vals]
