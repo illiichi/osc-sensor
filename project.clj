@@ -14,7 +14,7 @@
   :dependencies [[org.clojure-android/clojure "1.7.0-alpha3" :use-resources true]
                  [overtone/osc-clj "0.9.0"]
                  [overtone/at-at "1.2.0"]
-                 [neko/neko "3.1.0-preview2"]]
+                 [neko/neko "3.1.0-SNAPSHOT"]]
   :profiles {:default [:dev]
 
              :dev
@@ -31,8 +31,8 @@
                { ;; Specify the path to your private keystore
                 ;; and the the alias of the key you want to
                 ;; sign APKs with.
-                ;; :keystore-path "/home/user/.android/private.keystore"
-                ;; :key-alias "mykeyalias"
+                :keystore-path "private.keystore"
+                :key-alias "osc-send"
 
                 :ignore-log-priority [:debug :verbose]
                 :aot :all

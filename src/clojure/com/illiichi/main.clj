@@ -24,12 +24,11 @@
                 (map #(/ (+ %1 %2) 2.0) vals xs)))]
     (send-off stack mean)))
 (defn send-every [id interval host port]
-  (letfn [(task []            
-            (let [client (osc-client host port)]
-              ;; (apply osc-send client (str "/" id) (concat [(now)] @acc-stack @rotate-stack))
-              (apply osc-send client (str "/" id) (concat @acc-stack @rotate-stack)))
-            (for [stack [acc-stack rotate-stack]] (send stack (fn [_] []))))]    
-    (every interval task my-pool)))
+  (let [client (osc-client host port false)]
+    (letfn [(task []            
+             (apply osc-send client (str "/" id) (concat @acc-stack @rotate-stack))
+             (for [stack [acc-stack rotate-stack]] (send stack (fn [_] []))))]
+     (every interval task my-pool))))
 
 (defn push-vector [stack vals]
   (let [push (fn [xs xss]
@@ -106,10 +105,10 @@
           [:edit-text {:text "192.168.0.2" :id ::address}]]
          [:linear-layout {}
           [:text-view {:text "port"}]
-          [:edit-text {:text "5000" :id ::port}]]
+          [:edit-text {:text "1234" :id ::port}]]
          [:linear-layout {}
           [:text-view {:text "interval(ms)"}]
-          [:edit-text {:text "80" :id ::interval}]]
+          [:edit-text {:text "100" :id ::interval}]]
          [:button {:id "button"
                    :text "ready?" :on-click (fn [_] (toggle-state (*a)))}]]))))
 
