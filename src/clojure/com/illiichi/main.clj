@@ -126,38 +126,3 @@
   (osc-rm-listener server :debug)
  )
 
-;; (
-;; SynthDef("dynenv", {arg val = 0, dur = 1, ch = 0;
-;; 	Out.ar(ch, DynEnv.ar(val, dur));
-;; }).add
-;; )
-;;
-;;(
-;; var controlGroup = Group.new;
-;; var soundGroup = Group.new;
-;;
-;; var rotateBus = Bus.audio(s, 1);
-;; var accBus = Bus.audio(s, 1);
-;;
-;; var acc = Synth("dynenv", [\ch, accBus], controlGroup);
-;; var rotate = Synth("dynenv", [\ch, rotateBus], controlGroup);
-;; acc.set(\dur, 1/(60 - 2));
-;; rotate.set(\dur, 1/(60 - 2));
-;;
-;; soundGroup.moveAfter(controlGroup);
-;;
-;; OSCFunc({|msg, time, addr, recvPort|
-;;		var accX = msg[1];
-;;		var accY = msg[2];
-;;		var accZ = msg[3];
-;;		var rotateX = msg[4];
-;;		var rotateY = msg[5];
-;;		var rotateZ = msg[6];
-;;		acc.set(\val, accX);
-;;		rotate.set(\val, rotateX);
-;; }, '/Data', nil,1235);
-;;
-;; {PMOsc.ar(440 * In.ar(rotateBus).poll.abs, 10 * In.ar(accBus).abs, 3)}.play(soundGroup)
-;;)
-
-
